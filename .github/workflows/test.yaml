@@ -1,0 +1,26 @@
+name: test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup go
+        uses: actions/setup-go@v2
+      - name: Go version
+        run: go version
+      - name: Start temporal server
+        run: docker-compose up -d
+      - name: Wait for temporal server
+        run: while ! nc -z localhost 7233; do echo "Waiting for port 7233"; sleep 1; done
+      - name: Run tests
+        run: go test -v ./...
