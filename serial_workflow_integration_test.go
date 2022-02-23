@@ -35,7 +35,7 @@ func TestSimple(t *testing.T) {
 	case val := <-data:
 		assert.Equal(t, num, val)
 	case <-time.After(20 * time.Second):
-		assert.Fail(t, "no value received")
+		require.Fail(t, "no value received")
 	}
 }
 
@@ -83,7 +83,7 @@ cycle:
 				break cycle
 			}
 		case <-time.After(20 * time.Second):
-			assert.Fail(t, "no value received")
+			require.Fail(t, "no value received")
 		}
 	}
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, nums)
@@ -123,7 +123,7 @@ func TestParallel(t *testing.T) {
 	case val := <-data3:
 		assert.Equal(t, 3, val)
 	case <-time.After(20 * time.Second):
-		assert.Fail(t, "no value received")
+		require.Fail(t, "no value received")
 	}
 }
 
@@ -148,7 +148,7 @@ func TestError(t *testing.T) {
 		case val := <-data:
 			assert.Equal(t, 1, val)
 		case <-time.After(20 * time.Second):
-			assert.Fail(t, "no value received")
+			require.Fail(t, "no value received")
 		}
 		ctx := context.Background()
 		err = r.Get(ctx, nil)
@@ -183,7 +183,7 @@ func TestMultipleErrors(t *testing.T) {
 		case val := <-data:
 			assert.Equal(t, 1, val)
 		case <-time.After(20 * time.Second):
-			assert.Fail(t, "no value received")
+			require.Fail(t, "no value received")
 		}
 	}
 
