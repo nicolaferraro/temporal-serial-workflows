@@ -15,11 +15,13 @@ const (
 	serialSignalName = "serial-start-workflow"
 )
 
+// SerialOptions holds data related to a serial workflow execution queue
 type SerialOptions struct {
 	client client.Client
 	queue  string
 }
 
+// New creates a new serial configuration
 func New(c client.Client, queue string) *SerialOptions {
 	return &SerialOptions{
 		client: c,
@@ -27,6 +29,7 @@ func New(c client.Client, queue string) *SerialOptions {
 	}
 }
 
+// ExecuteWorkflow executes the given workflow as child of a serial supervisor
 func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workflow.ChildWorkflowOptions, workflowFunc interface{}, data interface{}) (client.WorkflowRun, error) {
 	name, err := getWorkflowFunctionName(workflowFunc)
 	if err != nil {
@@ -46,12 +49,15 @@ func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workfl
 	return o.client.SignalWithStartWorkflow(ctx, id, serialSignalName, childWorkflowDefinition, options, SerialWorkflow)
 }
 
+// workflowDefinition allows passing child workflow data to the supervisor
 type workflowDefinition struct {
 	Options workflow.ChildWorkflowOptions
 	Name    string
 	Data    interface{}
 }
 
+// SerialWorkflow is the function executing workflows in sequence after receiving signals.
+// It needs to be registered in the worker.
 func SerialWorkflow(ctx workflow.Context) error {
 	var childWorkflowDefinition workflowDefinition
 	signalChan := workflow.GetSignalChannel(ctx, serialSignalName)
@@ -69,6 +75,7 @@ func SerialWorkflow(ctx workflow.Context) error {
 	return globalErr
 }
 
+// getWorkflowFunctionName comes from temporal internal packages
 func getWorkflowFunctionName(workflowFunc interface{}) (string, error) {
 	fnName := ""
 	fType := reflect.TypeOf(workflowFunc)
@@ -84,6 +91,7 @@ func getWorkflowFunctionName(workflowFunc interface{}) (string, error) {
 	return fnName, nil
 }
 
+// getKind comes from temporal internal packages
 func getKind(fType reflect.Type) reflect.Kind {
 	if fType == nil {
 		return reflect.Invalid
@@ -91,6 +99,7 @@ func getKind(fType reflect.Type) reflect.Kind {
 	return fType.Kind()
 }
 
+// getFunctionName comes from temporal internal packages
 func getFunctionName(i interface{}) string {
 	if fullName, ok := i.(string); ok {
 		return fullName
