@@ -94,13 +94,13 @@ func TestParallel(t *testing.T) {
 	data3 := make(chan int)
 	sendNum := func(ctx workflow.Context) error {
 		data1 <- 1
-		v2 := <-data2
+		v2 := waitForData(t, ctx, data2)
 		assert.Equal(t, 2, v2)
 		data3 <- 3
 		return nil
 	}
 	sendNum2 := func(ctx workflow.Context) error {
-		v1 := <-data1
+		v1 := waitForData(t, ctx, data1)
 		assert.Equal(t, 1, v1)
 		data2 <- 2
 		return nil
@@ -123,6 +123,36 @@ func TestParallel(t *testing.T) {
 	case <-time.After(20 * time.Second):
 		assert.Fail(t, "no value received")
 	}
+}
+
+func TestError(t *testing.T) {
+	data := make(chan int)
+	fail := func(ctx workflow.Context) error {
+		data <- 1
+		return errors.New("myerror")
+	}
+	taskQueue := "test-queue"
+	c := temporalTestEnv(t, taskQueue, map[string]interface{}{
+		"fail": fail,
+	})
+
+	options := workflow.ChildWorkflowOptions{
+		TaskQueue: taskQueue,
+	}
+	for i := 0; i < 5; i++ {
+		r, err := New(c, "myqueue").ExecuteWorkflow(context.Background(), options, "fail", nil)
+		require.NoError(t, err)
+		select {
+		case val := <-data:
+			assert.Equal(t, 1, val)
+		case <-time.After(20 * time.Second):
+			assert.Fail(t, "no value received")
+		}
+		ctx := context.Background()
+		err = r.Get(ctx, nil)
+		assert.Error(t, err)
+	}
+
 }
 
 func temporalTestEnv(t *testing.T, taskQueue string, workflows map[string]interface{}) client.Client {
@@ -162,32 +192,22 @@ func temporalTestEnv(t *testing.T, taskQueue string, workflows map[string]interf
 	return c
 }
 
-func TestError(t *testing.T) {
-	data := make(chan int)
-	fail := func(ctx workflow.Context) error {
-		data <- 1
-		return errors.New("myerror")
-	}
-	taskQueue := "test-queue"
-	c := temporalTestEnv(t, taskQueue, map[string]interface{}{
-		"fail": fail,
-	})
-
-	options := workflow.ChildWorkflowOptions{
-		TaskQueue: taskQueue,
-	}
-	for i := 0; i < 5; i++ {
-		r, err := New(c, "myqueue").ExecuteWorkflow(context.Background(), options, "fail", nil)
-		require.NoError(t, err)
+// waitForData wait up to 10 secs to get a message, without making temporal think of a deadlock
+func waitForData(t *testing.T, ctx workflow.Context, channel <-chan int) int {
+	for i := 0; i < 10; i++ {
 		select {
-		case val := <-data:
-			assert.Equal(t, 1, val)
-		case <-time.After(20 * time.Second):
-			assert.Fail(t, "no value received")
+		case v, ok := <-channel:
+			if ok {
+				return v
+			} else {
+				require.Fail(t, "channel closed")
+				return 0
+			}
+		default:
+			err := workflow.Sleep(ctx, time.Second)
+			require.NoError(t, err)
 		}
-		ctx := context.Background()
-		err = r.Get(ctx, nil)
-		assert.Error(t, err)
 	}
-
+	require.Fail(t, "no data")
+	return 0
 }
