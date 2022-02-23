@@ -20,7 +20,5 @@ jobs:
         run: go version
       - name: Start temporal server
         run: docker-compose up -d
-      - name: Wait for temporal server
-        run: while ! nc -z localhost 7233; do echo "Waiting for port 7233"; sleep 1; done
       - name: Run tests
         run: go test -v ./...

@@ -155,6 +155,38 @@ func TestError(t *testing.T) {
 
 }
 
+func TestMultipleErrors(t *testing.T) {
+	data := make(chan int, 100)
+	fail := func(ctx workflow.Context) error {
+		err := workflow.Sleep(ctx, time.Second)
+		require.NoError(t, err)
+		data <- 1
+		return errors.New("myerror")
+	}
+	taskQueue := "test-queue"
+	c := temporalTestEnv(t, taskQueue, map[string]interface{}{
+		"fail": fail,
+	})
+
+	options := workflow.ChildWorkflowOptions{
+		TaskQueue: taskQueue,
+	}
+	num := 3
+	for i := 0; i < num; i++ {
+		_, err := New(c, "myqueue").ExecuteWorkflow(context.Background(), options, "fail", nil)
+		require.NoError(t, err)
+	}
+	for i := 0; i < num; i++ {
+		select {
+		case val := <-data:
+			assert.Equal(t, 1, val)
+		case <-time.After(20 * time.Second):
+			assert.Fail(t, "no value received")
+		}
+	}
+
+}
+
 func temporalTestEnv(t *testing.T, taskQueue string, workflows map[string]interface{}) client.Client {
 	interrupt := make(chan interface{})
 	c, err := client.NewClient(client.Options{})
