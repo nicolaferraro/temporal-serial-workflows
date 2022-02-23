@@ -68,6 +68,7 @@ func TestSerial(t *testing.T) {
 		TaskQueue: taskQueue,
 	}
 	_, err := New(c, "myqueue3").ExecuteWorkflow(context.Background(), options, "sendNums", nil)
+	require.NoError(t, err)
 	_, err = New(c, "myqueue3").ExecuteWorkflow(context.Background(), options, "sendNums2", nil)
 	require.NoError(t, err)
 
@@ -115,6 +116,7 @@ func TestParallel(t *testing.T) {
 		TaskQueue: taskQueue,
 	}
 	_, err := New(c, "myqueue1").ExecuteWorkflow(context.Background(), options, "sendNum", nil)
+	require.NoError(t, err)
 	_, err = New(c, "myqueue2").ExecuteWorkflow(context.Background(), options, "sendNum2", nil)
 	require.NoError(t, err)
 	select {
