@@ -15,14 +15,24 @@ const (
 	serialSignalName = "serial-start-workflow"
 )
 
+// SignalingClient is a sub-interface of the temporal Client
+type SignalingClient interface {
+	// SignalWithStartWorkflow follows the signature from the client
+	SignalWithStartWorkflow(ctx context.Context, workflowID string, signalName string, signalArg interface{},
+		options client.StartWorkflowOptions, workflow interface{}, workflowArgs ...interface{}) (client.WorkflowRun, error)
+}
+
+// Standard client is also a signaling client
+var _ SignalingClient = (client.Client)(nil)
+
 // SerialOptions holds data related to a serial workflow execution queue
 type SerialOptions struct {
-	client client.Client
+	client SignalingClient
 	queue  string
 }
 
 // New creates a new serial configuration
-func New(c client.Client, queue string) *SerialOptions {
+func New(c SignalingClient, queue string) *SerialOptions {
 	return &SerialOptions{
 		client: c,
 		queue:  queue,
@@ -30,7 +40,7 @@ func New(c client.Client, queue string) *SerialOptions {
 }
 
 // ExecuteWorkflow executes the given workflow as child of a serial supervisor
-func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workflow.ChildWorkflowOptions, workflowFunc interface{}, data interface{}) (client.WorkflowRun, error) {
+func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workflow.ChildWorkflowOptions, workflowFunc interface{}, data ...interface{}) (client.WorkflowRun, error) {
 	name, err := getWorkflowFunctionName(workflowFunc)
 	if err != nil {
 		return nil, fmt.Errorf("could not determine workflow function name: %w", err)
@@ -53,7 +63,7 @@ func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workfl
 type workflowDefinition struct {
 	Options workflow.ChildWorkflowOptions
 	Name    string
-	Data    interface{}
+	Data    []interface{}
 }
 
 // SerialWorkflow is the function executing workflows in sequence after receiving signals.
@@ -63,7 +73,7 @@ func SerialWorkflow(ctx workflow.Context) error {
 	signalChan := workflow.GetSignalChannel(ctx, serialSignalName)
 	var globalErr error
 	for signalChan.ReceiveAsync(&childWorkflowDefinition) {
-		fut := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, childWorkflowDefinition.Options), childWorkflowDefinition.Name, childWorkflowDefinition.Data)
+		fut := workflow.ExecuteChildWorkflow(workflow.WithChildOptions(ctx, childWorkflowDefinition.Options), childWorkflowDefinition.Name, childWorkflowDefinition.Data...)
 		if err := fut.Get(ctx, nil); err != nil {
 			if globalErr == nil {
 				globalErr = err

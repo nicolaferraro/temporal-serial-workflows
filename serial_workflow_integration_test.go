@@ -1,3 +1,6 @@
+//go:build integration_test
+// +build integration_test
+
 package serial
 
 import (
@@ -14,7 +17,7 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
-func TestSimple(t *testing.T) {
+func TestSimpleIT(t *testing.T) {
 	data := make(chan int)
 	sendNum := func(ctx workflow.Context, val int) error {
 		data <- val
@@ -39,7 +42,7 @@ func TestSimple(t *testing.T) {
 	}
 }
 
-func TestSerial(t *testing.T) {
+func TestSerialIT(t *testing.T) {
 	data := make(chan int, 100)
 	sendNums := func(ctx workflow.Context) error {
 		for i := 0; i < 5; i++ {
@@ -89,7 +92,7 @@ cycle:
 	assert.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, nums)
 }
 
-func TestParallel(t *testing.T) {
+func TestParallelIT(t *testing.T) {
 	data1 := make(chan int)
 	data2 := make(chan int)
 	data3 := make(chan int)
@@ -127,7 +130,7 @@ func TestParallel(t *testing.T) {
 	}
 }
 
-func TestError(t *testing.T) {
+func TestErrorIT(t *testing.T) {
 	data := make(chan int)
 	fail := func(ctx workflow.Context) error {
 		data <- 1
@@ -157,7 +160,7 @@ func TestError(t *testing.T) {
 
 }
 
-func TestMultipleErrors(t *testing.T) {
+func TestMultipleErrorsIT(t *testing.T) {
 	data := make(chan int, 100)
 	fail := func(ctx workflow.Context) error {
 		err := workflow.Sleep(ctx, time.Second)
