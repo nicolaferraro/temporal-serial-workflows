@@ -23,24 +23,24 @@ type SignalingClient interface {
 }
 
 // Standard client is also a signaling client
-var _ SignalingClient = (client.Client)(nil)
+var _ SignalingClient = client.Client(nil)
 
-// SerialOptions holds data related to a serial workflow execution queue
-type SerialOptions struct {
+// Options holds data related to a serial workflow execution queue
+type Options struct {
 	client SignalingClient
 	queue  string
 }
 
 // New creates a new serial configuration
-func New(c SignalingClient, queue string) *SerialOptions {
-	return &SerialOptions{
+func New(c SignalingClient, queue string) *Options {
+	return &Options{
 		client: c,
 		queue:  queue,
 	}
 }
 
 // ExecuteWorkflow executes the given workflow as child of a serial supervisor
-func (o *SerialOptions) ExecuteWorkflow(ctx context.Context, childOptions workflow.ChildWorkflowOptions, workflowFunc interface{}, data ...interface{}) (client.WorkflowRun, error) {
+func (o *Options) ExecuteWorkflow(ctx context.Context, childOptions workflow.ChildWorkflowOptions, workflowFunc interface{}, data ...interface{}) (client.WorkflowRun, error) {
 	name, err := getWorkflowFunctionName(workflowFunc)
 	if err != nil {
 		return nil, fmt.Errorf("could not determine workflow function name: %w", err)
@@ -68,6 +68,8 @@ type workflowDefinition struct {
 
 // SerialWorkflow is the function executing workflows in sequence after receiving signals.
 // It needs to be registered in the worker.
+//
+// nolint:golint,revive // Temporal will use the plain function name
 func SerialWorkflow(ctx workflow.Context) error {
 	var childWorkflowDefinition workflowDefinition
 	signalChan := workflow.GetSignalChannel(ctx, serialSignalName)
@@ -87,7 +89,7 @@ func SerialWorkflow(ctx workflow.Context) error {
 
 // getWorkflowFunctionName comes from temporal internal packages
 func getWorkflowFunctionName(workflowFunc interface{}) (string, error) {
-	fnName := ""
+	var fnName string
 	fType := reflect.TypeOf(workflowFunc)
 	switch getKind(fType) {
 	case reflect.String:

@@ -1,4 +1,4 @@
-module money-transfer-project-template-go/app
+module github.com/nicolaferraro/temporal-serial-workflows
 
 go 1.14
 

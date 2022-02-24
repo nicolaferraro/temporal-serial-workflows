@@ -101,8 +101,8 @@ type unitTestEnv struct {
 	launched bool
 }
 
-func (env *unitTestEnv) SignalWithStartWorkflow(ctx context.Context, workflowID string, signalName string, signalArg interface{},
-	options client.StartWorkflowOptions, workflow interface{}, workflowArgs ...interface{}) (client.WorkflowRun, error) {
+func (env *unitTestEnv) SignalWithStartWorkflow(_ context.Context, workflowID string, signalName string, signalArg interface{},
+	_ client.StartWorkflowOptions, workflow interface{}, workflowArgs ...interface{}) (client.WorkflowRun, error) {
 	env.RegisterDelayedCallback(func() {
 		env.SignalWorkflow(signalName, signalArg)
 	}, 0)
@@ -124,11 +124,11 @@ func (m mockWorkflowRun) GetID() string {
 	return m.id
 }
 
-func (m mockWorkflowRun) GetRunID() string {
+func (mockWorkflowRun) GetRunID() string {
 	return "mock"
 }
 
-func (m mockWorkflowRun) Get(ctx context.Context, valuePtr interface{}) error {
+func (mockWorkflowRun) Get(_ context.Context, _ interface{}) error {
 	return nil
 }
 
