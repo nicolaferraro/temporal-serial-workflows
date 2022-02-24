@@ -27,7 +27,7 @@ func TestSimpleExecution(t *testing.T) {
 	select {
 	case val := <-data:
 		assert.Equal(t, num, val)
-	case <-time.After(20 * time.Second):
+	case <-time.After(5 * time.Second):
 		require.Fail(t, "no value received")
 	}
 }
@@ -90,7 +90,7 @@ func TestErrorsDoNotStopSubsequentExecutions(t *testing.T) {
 		select {
 		case val := <-data:
 			assert.Equal(t, 1, val)
-		case <-time.After(20 * time.Second):
+		case <-time.After(5 * time.Second):
 			require.Fail(t, "no value received")
 		}
 	}
